@@ -1,51 +1,49 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import colors from 'colors';
-import users from './data/users.js';
 import products from './data/products.js';
-import User from './models/userModel.js';
-import Product from './models/productModel.js';
-import Order from './models/orderModel.js';
-import connectDB from './config/db.js';
+import Product from './models/Product.js';
 
 dotenv.config();
 
-connectDB();
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+};
 
 const importData = async () => {
   try {
-    await Order.deleteMany();
+    await connectDB();
+
     await Product.deleteMany();
-    await User.deleteMany();
 
-    const createdUsers = await User.insertMany(users);
+    await Product.insertMany(products);
 
-    const adminUser = createdUsers[0]._id;
-
-    const sampleProducts = products.map((product) => {
-      return { ...product, user: adminUser };
-    });
-
-    await Product.insertMany(sampleProducts);
-
-    console.log('Data Imported!'.green.inverse);
+    console.log('Data Imported!');
     process.exit();
   } catch (error) {
-    console.error(`${error}`.red.inverse);
+    console.error(`Error: ${error}`);
     process.exit(1);
   }
 };
 
 const destroyData = async () => {
   try {
-    await Order.deleteMany();
-    await Product.deleteMany();
-    await User.deleteMany();
+    await connectDB();
 
-    console.log('Data Destroyed!'.red.inverse);
+    await Product.deleteMany();
+
+    console.log('Data Destroyed!');
     process.exit();
   } catch (error) {
-    console.error(`${error}`.red.inverse);
+    console.error(`Error: ${error}`);
     process.exit(1);
   }
 };

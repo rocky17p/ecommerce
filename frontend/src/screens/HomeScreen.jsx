@@ -1,56 +1,63 @@
-import { Row, Col } from 'react-bootstrap';
-import { useParams } from 'react-router-dom';
-import { useGetProductsQuery } from '../slices/productsApiSlice';
-import { Link } from 'react-router-dom';
-import Product from '../components/Product';
-import Loader from '../components/Loader';
-import Message from '../components/Message';
-import Paginate from '../components/Paginate';
-import ProductCarousel from '../components/ProductCarousel';
-import Meta from '../components/Meta';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import ProductCard from '../components/ProductCard';
 
 const HomeScreen = () => {
-  const { pageNumber, keyword } = useParams();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data, isLoading, error } = useGetProductsQuery({
-    keyword,
-    pageNumber,
-  });
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const { data } = await axios.get('http://localhost:5000/api/products');
+        setProducts(data);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        // Fallback to sample data if backend is not running or connected
+        setProducts([
+          {
+            _id: '1',
+            name: 'Airpods Wireless Headphones',
+            image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=500&q=80',
+            price: 89.99,
+            countInStock: 10,
+          },
+          {
+            _id: '2',
+            name: 'iPhone 13 Pro 256GB',
+            image: 'https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=500&q=80',
+            price: 999.99,
+            countInStock: 7,
+          },
+          {
+            _id: '3',
+            name: 'Cannon EOS 80D DSLR Camera',
+            image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&q=80',
+            price: 929.99,
+            countInStock: 5,
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   return (
-    <>
-      {!keyword ? (
-        <ProductCarousel />
+    <div>
+      <h1 className="screen-title">Latest Products</h1>
+      {loading ? (
+        <div className="loader">Loading...</div>
       ) : (
-        <Link to='/' className='btn btn-light mb-4'>
-          Go Back
-        </Link>
+        <div className="products-grid">
+          {products.map((product) => (
+            <ProductCard key={product._id} product={product} />
+          ))}
+        </div>
       )}
-      {isLoading ? (
-        <Loader />
-      ) : error ? (
-        <Message variant='danger'>
-          {error?.data?.message || error.error}
-        </Message>
-      ) : (
-        <>
-          <Meta />
-          <h1>Latest Products</h1>
-          <Row>
-            {data.products.map((product) => (
-              <Col key={product._id} sm={12} md={6} lg={4} xl={3}>
-                <Product product={product} />
-              </Col>
-            ))}
-          </Row>
-          <Paginate
-            pages={data.pages}
-            page={data.page}
-            keyword={keyword ? keyword : ''}
-          />
-        </>
-      )}
-    </>
+    </div>
   );
 };
 

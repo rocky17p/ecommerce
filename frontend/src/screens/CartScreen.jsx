@@ -1,11 +1,14 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, CreditCard, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
+import AuthContext from '../context/AuthContext';
 
 const CartScreen = () => {
   const { cartItems, removeFromCart, clearCart } = useCart();
+  const { user, token } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [paying, setPaying] = useState(false);
 
@@ -15,21 +18,40 @@ const CartScreen = () => {
   );
 
   const handlePayment = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     setPaying(true);
     try {
-      // Simulate API call to fake payment route
-      await axios.post('http://localhost:5000/api/products/pay', {
-        amount: cartTotal,
+      const orderData = {
+        orderItems: cartItems.map(item => ({
+          name: item.name,
+          qty: item.qty,
+          image: item.image,
+          price: item.price,
+          product: item._id
+        })),
+        shippingAddress: {
+          address: '123 Main St',
+          city: 'Anytown',
+          postalCode: '12345',
+          country: 'USA'
+        },
+        paymentMethod: 'Credit Card',
+        totalPrice: cartTotal,
+      };
+
+      await axios.post('/api/orders', orderData, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Show success
       setShowModal(true);
       clearCart();
     } catch (error) {
       console.error('Payment error', error);
-      // Even if backend fails, let's fake it for the basic requirement
-      setShowModal(true);
-      clearCart();
+      alert('Failed to place order. Please try again.');
     } finally {
       setPaying(false);
     }
